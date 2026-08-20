@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Analysis | Movie Review Classifier</title>
+<style>
+  :root {
+    --positive: #16a34a;
+    --negative: #dc2626;
+    --primary-start: #7c3aed;
+    --primary-mid: #6366f1;
+    --primary-end: #06b6d4;
+    --card-bg: rgba(255, 255, 255, 0.97);
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-mid) 50%, var(--primary-end));
+    background-size: 200% 200%;
+    animation: gradientShift 14s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .container {
+    width: 100%;
+    max-width: 660px;
+    background: var(--card-bg);
+    border-radius: 22px;
+    box-shadow: 0 25px 50px rgba(30, 27, 75, 0.35);
+    padding: 42px 38px;
+    backdrop-filter: blur(6px);
+  }
+
+  .header { text-align: center; margin-bottom: 26px; }
+
+  .header .icon {
+    font-size: 44px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .header p { color: var(--text-muted); font-size: 14px; }
+
+  .badge-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #e0e7ff;
+  }
+
+  form { display: flex; flex-direction: column; gap: 16px; }
+
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 2px solid #e2e8f0;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text-dark);
+    resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary-mid);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+
+  button {
+    padding: 15px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.35);
+  }
+
+  button:active { transform: translateY(0); }
+
+  .result-card {
+    margin-top: 28px;
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-card.positive {
+    background: rgba(22, 163, 74, 0.08);
+    border: 2px solid var(--positive);
+  }
+
+  .result-card.negative {
+    background: rgba(220, 38, 38, 0.08);
+    border: 2px solid var(--negative);
+  }
+
+  .result-emoji { font-size: 40px; margin-bottom: 8px; }
+
+  .result-label { font-size: 23px; font-weight: 800; margin-bottom: 8px; }
+
+  .result-card.positive .result-label { color: var(--positive); }
+  .result-card.negative .result-label { color: var(--negative); }
+
+  .confidence-bar-bg {
+    margin-top: 10px;
+    height: 12px;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .confidence-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.6s ease;
+  }
+
+  .result-card.positive .confidence-bar-fill { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .result-card.negative .confidence-bar-fill { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+  .confidence-text {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 26px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="icon">🎬</div>
+      <h1>Movie Review Sentiment Analyzer</h1>
+      
+    </div>
+
+    <form method="POST" action="/">
+      <textarea
+        name="review_text"
+        placeholder="Type or paste a movie review here... e.g. 'This film was absolutely brilliant, I loved every scene!'"
+        required
+      >{{ review_text }}</textarea>
+      <button type="submit">Analyze Sentiment</button>
+    </form>
+
+    {% if result %}
+    <div class="result-card {{ 'positive' if result == 'Positive' else 'negative' }}">
+      <div class="result-emoji">{{ '😊' if result == 'Positive' else '😞' }}</div>
+      <div class="result-label">{{ result }} Sentiment</div>
+      <div class="confidence-bar-bg">
+        <div class="confidence-bar-fill" style="width: {{ confidence }}%;"></div>
+      </div>
+      <div class="confidence-text">Confidence: {{ confidence }}%</div>
+    </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>
